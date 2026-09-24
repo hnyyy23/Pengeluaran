@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pencatat Pengeluaran Mingguan</title>
+    <style>
+        :root {
+            --primary: #4F46E5;
+            --primary-hover: #4338CA;
+            --danger: #EF4444;
+            --danger-hover: #DC2626;
+            --bg: #F3F4F6;
+            --card-bg: #FFFFFF;
+            --text: #1F2937;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            background-color: var(--card-bg);
+            width: 100%;
+            max-width: 600px;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 24px;
+            margin-bottom: 20px;
+            color: var(--primary);
+        }
+
+        .summary-card {
+            background: linear-gradient(135deg, #4F46E5 0%, #3B82F6 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            margin-bottom: 25px;
+            box-shadow: 0 4px 6px rgba(59, 130, 246, 0.3);
+        }
+
+        .summary-card h2 {
+            font-size: 16px;
+            font-weight: normal;
+            margin-bottom: 5px;
+        }
+
+        .summary-card .total {
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .form-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        input {
+            padding: 12px;
+            border: 1px solid #D1D5DB;
+            border-radius: 6px;
+            font-size: 14px;
+            flex: 1;
+            min-width: 120px;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2);
+        }
+
+        button.btn-add {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            flex-basis: 100%;
+            transition: background 0.2s;
+        }
+
+        button.btn-add:hover {
+            background-color: var(--primary-hover);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th, td {
+            text-align: left;
+            padding: 12px;
+            border-bottom: 1px solid #E5E7EB;
+        }
+
+        th {
+            background-color: #F9FAFB;
+            font-weight: 600;
+        }
+
+        .btn-delete {
+            background-color: var(--danger);
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background 0.2s;
+        }
+
+        .btn-delete:hover {
+            background-color: var(--danger-hover);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 20px;
+            color: #6B7280;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Buku Kas Pribadi</h1>
+        
+        <div class="summary-card">
+            <h2>Total Pengeluaran Minggu Ini</h2>
+            <div class="total" id="total-amount">Rp 0</div>
+        </div>
+
+        <form id="expense-form">
+            <div class="form-group">
+                <input type="date" id="date" required>
+                <input type="text" id="desc" placeholder="Keterangan (Makan, Bensin, dll)" required>
+                <input type="number" id="amount" placeholder="Jumlah (Rp)" required min="1">
+            </div>
+            <button type="submit" class="btn-add">Tambah Pengeluaran</button>
+        </form>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Tanggal</th>
+                    <th>Keterangan</th>
+                    <th>Jumlah</th>
+                    <th>Aksi</th>
+                </tr>
+            </thead>
+            <tbody id="expense-list">
+                <!-- Data akan muncul di sini -->
+            </tbody>
+        </table>
+        <div id="empty-message" class="empty-state" style="display: none;">Belum ada data pengeluaran.</div>
+    </div>
+
+    <script>
+        // Mengambil elemen dari HTML
+        const form = document.getElementById('expense-form');
+        const dateInput = document.getElementById('date');
+        const descInput = document.getElementById('desc');
+        const amountInput = document.getElementById('amount');
+        const expenseList = document.getElementById('expense-list');
+        const totalAmountEl = document.getElementById('total-amount');
+        const emptyMessage = document.getElementById('empty-message');
+
+        // Mengambil data dari penyimpanan lokal (browser)
+        let expenses = JSON.parse(localStorage.getItem('expenses')) || [];
+
+        // Mengatur default tanggal hari ini
+        dateInput.valueAsDate = new Date();
+
+        // Fungsi untuk format Rupiah
+        const formatRupiah = (angka) => {
+            return new Intl.NumberFormat('id-ID', {
+                style: 'currency',
+                currency: 'IDR',
+                minimumFractionDigits: 0
+            }).format(angka);
+        };
+
+        // Fungsi mengecek apakah suatu tanggal ada di minggu ini (Senin - Minggu)
+        const isThisWeek = (dateString) => {
+            const date = new Date(dateString);
+            const now = new Date();
+            
+            // Mencari hari Senin pada minggu ini
+            const day = now.getDay() || 7; // Hari Minggu adalah 0 (ubah jadi 7)
+            if (day !== 1) now.setHours(-24 * (day - 1));
+            now.setHours(0, 0, 0, 0);
+            
+            const startOfWeek = new Date(now); // Senin
+            const endOfWeek = new Date(startOfWeek);
+            endOfWeek.setDate(startOfWeek.getDate() + 6); // Minggu
+            endOfWeek.setHours(23, 59, 59, 999);
+            
+            return date >= startOfWeek && date <= endOfWeek;
+        };
+
+        // Fungsi untuk menyimpan ke local storage
+        const saveExpenses = () => {
+            localStorage.setItem('expenses', JSON.stringify(expenses));
+        };
+
+        // Fungsi untuk menampilkan data ke tabel
+        const renderExpenses = () => {
+            expenseList.innerHTML = '';
+            let totalMingguIni = 0;
+
+            // Mengurutkan dari tanggal terbaru
+            expenses.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            if (expenses.length === 0) {
+                emptyMessage.style.display = 'block';
+            } else {
+                emptyMessage.style.display = 'none';
+            }
+
+            expenses.forEach((expense, index) => {
+                // Hitung total hanya jika di minggu ini
+                if (isThisWeek(expense.date)) {
+                    totalMingguIni += expense.amount;
+                }
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${expense.date}</td>
+                    <td>${expense.desc}</td>
+                    <td>${formatRupiah(expense.amount)}</td>
+                    <td><button class="btn-delete" onclick="deleteExpense(${index})">Hapus</button></td>
+                `;
+                expenseList.appendChild(tr);
+            });
+
+            totalAmountEl.innerText = formatRupiah(totalMingguIni);
+        };
+
+        // Fungsi tambah pengeluaran
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            const date = dateInput.value;
+            const desc = descInput.value;
+            const amount = parseFloat(amountInput.value);
+
+            if (date && desc && amount) {
+                expenses.push({ date, desc, amount });
+                saveExpenses();
+                renderExpenses();
+                
+                // Reset form
+                descInput.value = '';
+                amountInput.value = '';
+                descInput.focus();
+            }
+        });
+
+        // Fungsi hapus pengeluaran
+        window.deleteExpense = (index) => {
+            if(confirm("Apakah kamu yakin ingin menghapus data ini?")) {
+                expenses.splice(index, 1);
+                saveExpenses();
+                renderExpenses();
+            }
+        };
+
+        // Tampilkan saat pertama kali dibuka
+        renderExpenses();
+    </script>
+</body>
+</html>
