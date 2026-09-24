@@ -1,15 +1,20 @@
+
 <!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pencatat Pengeluaran Mingguan</title>
+    <title>Buku Kas Pribadi</title>
     <style>
         :root {
             --primary: #4F46E5;
             --primary-hover: #4338CA;
+            --success: #10B981;
+            --success-hover: #059669;
             --danger: #EF4444;
             --danger-hover: #DC2626;
+            --warning: #F59E0B;
+            --info: #3B82F6;
             --bg: #F3F4F6;
             --card-bg: #FFFFFF;
             --text: #1F2937;
@@ -33,7 +38,7 @@
         .container {
             background-color: var(--card-bg);
             width: 100%;
-            max-width: 600px;
+            max-width: 800px;
             padding: 30px;
             border-radius: 12px;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
@@ -46,69 +51,142 @@
             color: var(--primary);
         }
 
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
         .summary-card {
-            background: linear-gradient(135deg, #4F46E5 0%, #3B82F6 100%);
-            color: white;
             padding: 20px;
             border-radius: 8px;
             text-align: center;
-            margin-bottom: 25px;
-            box-shadow: 0 4px 6px rgba(59, 130, 246, 0.3);
+            color: white;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .summary-card.balance {
+            background: linear-gradient(135deg, #4F46E5 0%, #3B82F6 100%);
+            grid-column: 1 / -1; 
+        }
+        
+        .summary-card.income {
+            background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+        }
+
+        .summary-card.expense {
+            background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
         }
 
         .summary-card h2 {
-            font-size: 16px;
+            font-size: 14px;
             font-weight: normal;
             margin-bottom: 5px;
+            opacity: 0.9;
         }
 
         .summary-card .total {
-            font-size: 28px;
+            font-size: 24px;
             font-weight: bold;
         }
 
-        .form-group {
+        .filter-section {
             display: flex;
-            gap: 10px;
+            justify-content: space-between;
+            align-items: center;
             margin-bottom: 15px;
+            background-color: #F9FAFB;
+            padding: 10px 15px;
+            border-radius: 8px;
+            border: 1px solid #E5E7EB;
             flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .filter-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
-        input {
+        .filter-section select {
+            padding: 8px;
+            border-radius: 6px;
+            border: 1px solid #D1D5DB;
+            outline: none;
+        }
+
+        .form-container {
+            background-color: #F9FAFB;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #E5E7EB;
+            margin-bottom: 25px;
+        }
+
+        .form-container h3 {
+            margin-bottom: 15px;
+            font-size: 16px;
+            color: #4B5563;
+        }
+
+        .form-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .form-group-full {
+            grid-column: 1 / -1;
+            display: flex;
+            gap: 15px;
+        }
+
+        input, select {
             padding: 12px;
             border: 1px solid #D1D5DB;
             border-radius: 6px;
             font-size: 14px;
-            flex: 1;
-            min-width: 120px;
+            width: 100%;
         }
 
-        input:focus {
+        input:focus, select:focus {
             outline: none;
             border-color: var(--primary);
             box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2);
         }
+        
+        .btn-group {
+            display: flex;
+            gap: 10px;
+        }
 
-        button.btn-add {
-            background-color: var(--primary);
-            color: white;
+        button {
             border: none;
             padding: 12px 20px;
             border-radius: 6px;
             cursor: pointer;
             font-weight: bold;
-            flex-basis: 100%;
+            color: white;
             transition: background 0.2s;
+            flex: 1;
         }
 
-        button.btn-add:hover {
-            background-color: var(--primary-hover);
+        button.btn-income {
+            background-color: var(--success);
         }
+        button.btn-income:hover { background-color: var(--success-hover); }
+
+        button.btn-expense {
+            background-color: var(--danger);
+        }
+        button.btn-expense:hover { background-color: var(--danger-hover); }
 
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 20px;
         }
 
         th, td {
@@ -120,28 +198,57 @@
         th {
             background-color: #F9FAFB;
             font-weight: 600;
+            color: #4B5563;
+        }
+        
+        .type-income { color: var(--success); font-weight: 600; }
+        .type-expense { color: var(--danger); font-weight: 600; }
+
+        .category-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            background-color: #E5E7EB;
+            color: #374151;
         }
 
+        .category-makan { background-color: #FDE68A; color: #92400E; }
+        .category-jajan { background-color: #FECACA; color: #991B1B; }
+        .category-kesehatan { background-color: #A7F3D0; color: #065F46; }
+        .category-kuliah { background-color: #BFDBFE; color: #1E40AF; }
+        .category-transportasi { background-color: #E9D5FF; color: #6B21A8; }
+        .category-pemasukan { background-color: #D1FAE5; color: #065F46; }
+        .category-lainnya { background-color: #F3F4F6; color: #374151; }
+
         .btn-delete {
-            background-color: var(--danger);
-            color: white;
-            border: none;
+            background-color: #F3F4F6;
+            color: var(--danger);
+            border: 1px solid var(--danger);
             padding: 6px 12px;
             border-radius: 4px;
-            cursor: pointer;
             font-size: 12px;
-            transition: background 0.2s;
+            flex: none;
         }
 
         .btn-delete:hover {
-            background-color: var(--danger-hover);
+            background-color: var(--danger);
+            color: white;
         }
 
         .empty-state {
             text-align: center;
-            padding: 20px;
+            padding: 30px;
             color: #6B7280;
             font-style: italic;
+        }
+
+        @media (max-width: 600px) {
+            .form-group { grid-template-columns: 1fr; }
+            .form-group-full { flex-direction: column; }
+            .filter-section { flex-direction: column; align-items: flex-start; }
+            .filter-group { width: 100%; flex-direction: column; align-items: stretch;}
         }
     </style>
 </head>
@@ -150,53 +257,104 @@
     <div class="container">
         <h1>Buku Kas Pribadi</h1>
         
-        <div class="summary-card">
-            <h2>Total Pengeluaran Minggu Ini</h2>
-            <div class="total" id="total-amount">Rp 0</div>
+        <div class="filter-section">
+            <span style="font-weight: 600; color: #4B5563;">Filter Data:</span>
+            <div class="filter-group">
+                <select id="time-filter" onchange="renderData()">
+                    <option value="all">Semua Waktu</option>
+                    <option value="this_week">Minggu Ini</option>
+                    <option value="this_month">Bulan Ini</option>
+                </select>
+                <select id="category-filter" onchange="renderData()">
+                    <option value="all">Semua Kategori</option>
+                    <option value="Makan">Makan</option>
+                    <option value="Jajan">Jajan</option>
+                    <option value="Kesehatan">Kesehatan</option>
+                    <option value="Kebutuhan Kuliah">Kebutuhan Kuliah</option>
+                    <option value="Transportasi">Transportasi</option>
+                    <option value="Pemasukan">Pemasukan (Gaji/Uang Saku)</option>
+                    <option value="Lainnya">Lainnya</option>
+                </select>
+            </div>
         </div>
 
-        <form id="expense-form">
-            <div class="form-group">
-                <input type="date" id="date" required>
-                <input type="text" id="desc" placeholder="Keterangan (Makan, Bensin, dll)" required>
-                <input type="number" id="amount" placeholder="Jumlah (Rp)" required min="1">
+        <div class="dashboard">
+            <div class="summary-card balance">
+                <h2 id="balance-title">Sisa Saldo (Semua Waktu)</h2>
+                <div class="total" id="total-balance">Rp 0</div>
             </div>
-            <button type="submit" class="btn-add">Tambah Pengeluaran</button>
-        </form>
+            <div class="summary-card income">
+                <h2>Total Pemasukan</h2>
+                <div class="total" id="total-income">Rp 0</div>
+            </div>
+            <div class="summary-card expense">
+                <h2>Total Pengeluaran</h2>
+                <div class="total" id="total-expense">Rp 0</div>
+            </div>
+        </div>
 
-        <table>
-            <thead>
-                <tr>
-                    <th>Tanggal</th>
-                    <th>Keterangan</th>
-                    <th>Jumlah</th>
-                    <th>Aksi</th>
-                </tr>
-            </thead>
-            <tbody id="expense-list">
-                <!-- Data akan muncul di sini -->
-            </tbody>
-        </table>
-        <div id="empty-message" class="empty-state" style="display: none;">Belum ada data pengeluaran.</div>
+        <div class="form-container">
+            <h3>Catat Transaksi Baru</h3>
+            <form id="transaction-form">
+                <div class="form-group">
+                    <input type="date" id="date" required>
+                    <input type="number" id="amount" placeholder="Jumlah (Rp)" required min="1">
+                </div>
+                <div class="form-group">
+                    <select id="category" required>
+                        <option value="" disabled selected>Pilih Kategori...</option>
+                        <option value="Makan">Makan</option>
+                        <option value="Jajan">Jajan</option>
+                        <option value="Kesehatan">Kesehatan</option>
+                        <option value="Kebutuhan Kuliah">Kebutuhan Kuliah</option>
+                        <option value="Transportasi">Transportasi</option>
+                        <option value="Pemasukan">Pemasukan (Gaji/Uang Saku)</option>
+                        <option value="Lainnya">Lainnya</option>
+                    </select>
+                    <input type="text" id="desc" placeholder="Keterangan Tambahan (Opsional)">
+                </div>
+                <div class="btn-group" style="margin-top: 15px;">
+                    <button type="button" class="btn-income" onclick="addTransaction('income')">+ Tambah Pemasukan</button>
+                    <button type="button" class="btn-expense" onclick="addTransaction('expense')">- Tambah Pengeluaran</button>
+                </div>
+            </form>
+        </div>
+
+        <div style="overflow-x: auto;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Tanggal</th>
+                        <th>Kategori</th>
+                        <th>Keterangan</th>
+                        <th>Jumlah</th>
+                        <th>Aksi</th>
+                    </tr>
+                </thead>
+                <tbody id="transaction-list">
+                    <!-- Data akan muncul di sini -->
+                </tbody>
+            </table>
+        </div>
+        <div id="empty-message" class="empty-state" style="display: none;">Belum ada data transaksi untuk filter ini.</div>
     </div>
 
     <script>
-        // Mengambil elemen dari HTML
-        const form = document.getElementById('expense-form');
+        // Inisialisasi Data
+        let transactions = JSON.parse(localStorage.getItem('kas_transactions')) || [];
+        
+        // Elemen DOM
         const dateInput = document.getElementById('date');
         const descInput = document.getElementById('desc');
         const amountInput = document.getElementById('amount');
-        const expenseList = document.getElementById('expense-list');
-        const totalAmountEl = document.getElementById('total-amount');
-        const emptyMessage = document.getElementById('empty-message');
-
-        // Mengambil data dari penyimpanan lokal (browser)
-        let expenses = JSON.parse(localStorage.getItem('expenses')) || [];
-
-        // Mengatur default tanggal hari ini
+        const categoryInput = document.getElementById('category');
+        const filterSelect = document.getElementById('time-filter');
+        const categoryFilterSelect = document.getElementById('category-filter');
+        
+        // Set tanggal hari ini
         dateInput.valueAsDate = new Date();
 
-        // Fungsi untuk format Rupiah
+        // Format Rupiah
         const formatRupiah = (angka) => {
             return new Intl.NumberFormat('id-ID', {
                 style: 'currency',
@@ -205,93 +363,163 @@
             }).format(angka);
         };
 
-        // Fungsi mengecek apakah suatu tanggal ada di minggu ini (Senin - Minggu)
-        const isThisWeek = (dateString) => {
-            const date = new Date(dateString);
-            const now = new Date();
-            
-            // Mencari hari Senin pada minggu ini
-            const day = now.getDay() || 7; // Hari Minggu adalah 0 (ubah jadi 7)
-            if (day !== 1) now.setHours(-24 * (day - 1));
-            now.setHours(0, 0, 0, 0);
-            
-            const startOfWeek = new Date(now); // Senin
-            const endOfWeek = new Date(startOfWeek);
-            endOfWeek.setDate(startOfWeek.getDate() + 6); // Minggu
-            endOfWeek.setHours(23, 59, 59, 999);
-            
-            return date >= startOfWeek && date <= endOfWeek;
+        // Fungsi mendapatkan class badge untuk kategori
+        const getCategoryBadgeClass = (category) => {
+            const map = {
+                'Makan': 'category-makan',
+                'Jajan': 'category-jajan',
+                'Kesehatan': 'category-kesehatan',
+                'Kebutuhan Kuliah': 'category-kuliah',
+                'Transportasi': 'category-transportasi',
+                'Pemasukan': 'category-pemasukan',
+                'Lainnya': 'category-lainnya'
+            };
+            return map[category] || 'category-lainnya';
         };
 
-        // Fungsi untuk menyimpan ke local storage
-        const saveExpenses = () => {
-            localStorage.setItem('expenses', JSON.stringify(expenses));
-        };
-
-        // Fungsi untuk menampilkan data ke tabel
-        const renderExpenses = () => {
-            expenseList.innerHTML = '';
-            let totalMingguIni = 0;
-
-            // Mengurutkan dari tanggal terbaru
-            expenses.sort((a, b) => new Date(b.date) - new Date(a.date));
-
-            if (expenses.length === 0) {
-                emptyMessage.style.display = 'block';
-            } else {
-                emptyMessage.style.display = 'none';
+        // Fungsi Filter
+        const isWithinFilter = (t, timeFilter, catFilter) => {
+            // Cek Kategori
+            if (catFilter !== 'all' && t.category !== catFilter) {
+                return false;
             }
 
-            expenses.forEach((expense, index) => {
-                // Hitung total hanya jika di minggu ini
-                if (isThisWeek(expense.date)) {
-                    totalMingguIni += expense.amount;
-                }
-
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${expense.date}</td>
-                    <td>${expense.desc}</td>
-                    <td>${formatRupiah(expense.amount)}</td>
-                    <td><button class="btn-delete" onclick="deleteExpense(${index})">Hapus</button></td>
-                `;
-                expenseList.appendChild(tr);
-            });
-
-            totalAmountEl.innerText = formatRupiah(totalMingguIni);
+            // Cek Waktu
+            if (timeFilter === 'all') return true;
+            
+            const d = new Date(t.date);
+            const now = new Date();
+            
+            if (timeFilter === 'this_month') {
+                return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+            }
+            
+            if (timeFilter === 'this_week') {
+                const day = now.getDay() || 7; 
+                if (day !== 1) now.setHours(-24 * (day - 1));
+                now.setHours(0, 0, 0, 0);
+                
+                const start = new Date(now);
+                const end = new Date(start);
+                end.setDate(start.getDate() + 6);
+                end.setHours(23, 59, 59, 999);
+                
+                return d >= start && d <= end;
+            }
+            return true;
         };
 
-        // Fungsi tambah pengeluaran
-        form.addEventListener('submit', (e) => {
-            e.preventDefault();
-            
+        // Tambah Transaksi
+        window.addTransaction = (type) => {
             const date = dateInput.value;
             const desc = descInput.value;
             const amount = parseFloat(amountInput.value);
+            const category = categoryInput.value;
 
-            if (date && desc && amount) {
-                expenses.push({ date, desc, amount });
-                saveExpenses();
-                renderExpenses();
-                
-                // Reset form
-                descInput.value = '';
-                amountInput.value = '';
-                descInput.focus();
+            if (!date || !amount || !category) {
+                alert("Harap isi Tanggal, Kategori, dan Jumlah!");
+                return;
             }
-        });
 
-        // Fungsi hapus pengeluaran
-        window.deleteExpense = (index) => {
-            if(confirm("Apakah kamu yakin ingin menghapus data ini?")) {
-                expenses.splice(index, 1);
-                saveExpenses();
-                renderExpenses();
+            // Validasi: Jangan sampai milih kategori 'Pemasukan' tapi klik tombol 'Pengeluaran'
+            if (type === 'expense' && category === 'Pemasukan') {
+                alert("Kategori 'Pemasukan' hanya untuk Tambah Pemasukan!");
+                return;
+            }
+            if (type === 'income' && category !== 'Pemasukan' && category !== 'Lainnya') {
+                if(!confirm("Anda memilih kategori pengeluaran tapi menambahkannya sebagai Pemasukan. Lanjutkan?")) {
+                    return;
+                }
+            }
+
+            transactions.push({ 
+                id: Date.now(), 
+                date, 
+                category,
+                desc, 
+                amount,
+                type 
+            });
+            
+            localStorage.setItem('kas_transactions', JSON.stringify(transactions));
+            
+            // Reset form
+            descInput.value = '';
+            amountInput.value = '';
+            categoryInput.value = '';
+            
+            renderData();
+        };
+
+        // Hapus Transaksi
+        window.deleteTransaction = (id) => {
+            if(confirm("Hapus transaksi ini?")) {
+                transactions = transactions.filter(t => t.id !== id);
+                localStorage.setItem('kas_transactions', JSON.stringify(transactions));
+                renderData();
             }
         };
 
-        // Tampilkan saat pertama kali dibuka
-        renderExpenses();
+        // Render Data ke Layar
+        window.renderData = () => {
+            const timeFilter = filterSelect.value;
+            const catFilter = categoryFilterSelect.value;
+            const listEl = document.getElementById('transaction-list');
+            const emptyEl = document.getElementById('empty-message');
+            
+            // Update Title Filter
+            const titles = {
+                'all': 'Semua Waktu',
+                'this_week': 'Minggu Ini',
+                'this_month': 'Bulan Ini'
+            };
+            document.getElementById('balance-title').innerText = `Sisa Saldo (${titles[timeFilter]})`;
+
+            listEl.innerHTML = '';
+            let totalIncome = 0;
+            let totalExpense = 0;
+            let filteredCount = 0;
+
+            // Sortir dari terbaru
+            const sortedTransactions = [...transactions].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            sortedTransactions.forEach(t => {
+                if (isWithinFilter(t, timeFilter, catFilter)) {
+                    filteredCount++;
+                    
+                    if(t.type === 'income') totalIncome += t.amount;
+                    else totalExpense += t.amount;
+
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${t.date}</td>
+                        <td><span class="category-badge ${getCategoryBadgeClass(t.category)}">${t.category}</span></td>
+                        <td>${t.desc || '-'}</td>
+                        <td class="${t.type === 'income' ? 'type-income' : 'type-expense'}">
+                            ${t.type === 'income' ? '+' : '-'}${formatRupiah(t.amount)}
+                        </td>
+                        <td><button class="btn-delete" onclick="deleteTransaction(${t.id})">Hapus</button></td>
+                    `;
+                    listEl.appendChild(tr);
+                }
+            });
+
+            // Tampilkan Empty State
+            if(filteredCount === 0) {
+                emptyEl.style.display = 'block';
+            } else {
+                emptyEl.style.display = 'none';
+            }
+
+            // Update Dashboard
+            document.getElementById('total-income').innerText = formatRupiah(totalIncome);
+            document.getElementById('total-expense').innerText = formatRupiah(totalExpense);
+            document.getElementById('total-balance').innerText = formatRupiah(totalIncome - totalExpense);
+        };
+
+        // Jalankan saat pertama load
+        renderData();
     </script>
 </body>
 </html>
+
